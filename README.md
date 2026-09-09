@@ -23,21 +23,7 @@ agree on price. The business questions this project answers:
 3. **Is there a cost/speed trade-off** — does the cheapest option ever cost you transit time?
 4. **On lanes served by more than one carrier, which carrier should actually be recommended?**
 
-## 🧭 Approach
-
-```mermaid
-flowchart LR
-    A[OrderList<br/>9,215 orders] -->|join on carrier + route + service| C[Candidate rate rows<br/>146K rows]
-    B[FreightRates<br/>1,540 rate cards] -->|join on carrier + route + service| C
-    C -->|filter: weight ∈ min/max weight band| D[Feasible rate options<br/>15,402 rows]
-    D -->|expected_freight_cost = max(min_cost, weight × rate)| E[Costed candidates]
-    E -->|group by Order ID| F[Order-level summary<br/>6,991 orders]
-    F --> G[Savings opportunity<br/>727 orders, 10.4%]
-    F --> H[Pareto efficiency check<br/>cheapest vs. fastest]
-    F --> I[Carrier recommendation<br/>multi-carrier lanes]
-    G & H & I --> J[Power BI exports]
-    G & H & I --> K[Streamlit dashboard]
-```
+Approach
 
 1. **Data quality pass** — duplicate/null checks, cardinality checks on carriers, ports, customers, products.
 2. **Rate matching** — join orders to freight rates on `Carrier` + `Origin/Destination Port` + `Service Level`
