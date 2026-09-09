@@ -1,0 +1,25 @@
+# Jupyter
+.ipynb_checkpoints/
+*-checkpoint.ipynb
+*-checkpoint.py
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+# Streamlit
+.streamlit/
+
+# Generated exports (regenerate by re-running the notebook / app)
+powerbi_exports/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
