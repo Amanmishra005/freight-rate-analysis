@@ -1,4 +1,4 @@
-# 🚚 Freight Cost Intelligence & Rate Optimization
+# Freight Cost Intelligence & Rate Optimization
 
 Rate-card cost matching, savings-opportunity analysis, and carrier recommendations for a multi-carrier freight
 network — built as an end-to-end pipeline from raw Excel data to an interactive Streamlit dashboard.
@@ -6,13 +6,13 @@ network — built as an end-to-end pipeline from raw Excel data to an interactiv
 > Built on the *Brunel University London Supply Chain Logistics Problem* dataset (9,215 orders, 1,540 freight
 > rate-card rows, 3 carriers, 46 customers, 772 products).
 
-**[Live demo →](#)** &nbsp;·&nbsp; **[Jupyter analysis →](notebooks/02_freight_cost_analysis_completed.ipynb)** &nbsp;·&nbsp; **[Dashboard code →](app.py)**
+**[Live demo →](https://amanmishra005-freight-rate-analysis-app-kjrs33.streamlit.app/)** &nbsp;·&nbsp; **[Jupyter analysis →](notebooks/02_freight_cost_analysis_completed.ipynb)** &nbsp;·&nbsp; **[Dashboard code →](app.py)**
 
 <!-- Replace the live demo link once deployed, e.g. on Streamlit Community Cloud -->
 
 ---
 
-## 📌 The problem
+##  The problem
 
 A shipper works with 3 carriers, each publishing a rate card of `(origin port, destination port, service level,
 weight band) → price`. For any given order, several rate-card rows can legitimately apply — and they don't always
@@ -23,21 +23,7 @@ agree on price. The business questions this project answers:
 3. **Is there a cost/speed trade-off** — does the cheapest option ever cost you transit time?
 4. **On lanes served by more than one carrier, which carrier should actually be recommended?**
 
-## 🧭 Approach
-
-```mermaid
-flowchart LR
-    A[OrderList<br/>9,215 orders] -->|join on carrier + route + service| C[Candidate rate rows<br/>146K rows]
-    B[FreightRates<br/>1,540 rate cards] -->|join on carrier + route + service| C
-    C -->|filter: weight ∈ min/max weight band| D[Feasible rate options<br/>15,402 rows]
-    D -->|expected_freight_cost = max(min_cost, weight × rate)| E[Costed candidates]
-    E -->|group by Order ID| F[Order-level summary<br/>6,991 orders]
-    F --> G[Savings opportunity<br/>727 orders, 10.4%]
-    F --> H[Pareto efficiency check<br/>cheapest vs. fastest]
-    F --> I[Carrier recommendation<br/>multi-carrier lanes]
-    G & H & I --> J[Power BI exports]
-    G & H & I --> K[Streamlit dashboard]
-```
+Approach
 
 1. **Data quality pass** — duplicate/null checks, cardinality checks on carriers, ports, customers, products.
 2. **Rate matching** — join orders to freight rates on `Carrier` + `Origin/Destination Port` + `Service Level`
@@ -163,4 +149,4 @@ This project is available under the [MIT License](LICENSE).
 ## 👤 Author
 
 **Aman Mishra**
-<!-- Add your LinkedIn / GitHub / portfolio links here -->
+**[LinkedIn→](https://www.linkedin.com/in/aman-mishra5/)**
