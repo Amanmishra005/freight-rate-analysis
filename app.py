@@ -6,7 +6,42 @@ import os
 
 st.set_page_config(page_title="Freight Cost Intelligence", page_icon="🚚", layout="wide")
 
-DEFAULT_FILE = "Supply_chain_logisitcs_problem.xlsx"
+# Preferred filename, but the search below is case-insensitive and falls back
+# to any single .xlsx bundled with the app, so this doesn't have to match exactly.
+DEFAULT_FILENAME = "Supply_chain_logisitcs_problem.xlsx"
+SEARCH_DIRS = [".", "data"]
+
+REQUIRED_SHEETS = {"OrderList", "FreightRates"}
+REQUIRED_ORDER_COLS = {
+    "Order ID", "Origin Port", "Carrier", "Service Level",
+    "Ship ahead day count", "Ship Late Day count", "Destination Port", "Weight",
+}
+REQUIRED_RATE_COLS = {
+    "Carrier", "orig_port_cd", "dest_port_cd", "minm_wgh_qty", "max_wgh_qty",
+    "svc_cd", "minimum cost", "rate", "tpt_day_cnt",
+}
+
+
+def find_bundled_dataset():
+    """Look for a usable .xlsx next to the app or in a data/ folder.
+
+    Case-insensitive, and tolerant of the filename drifting slightly (spaces vs.
+    underscores, different casing) since Streamlit Cloud runs on Linux, which -
+    unlike a Windows dev machine - treats filenames as case-sensitive.
+    """
+    candidates = []
+    for d in SEARCH_DIRS:
+        if os.path.isdir(d):
+            candidates += [os.path.join(d, f) for f in os.listdir(d) if f.lower().endswith(".xlsx")]
+
+    if not candidates:
+        return None
+    for path in candidates:
+        if os.path.basename(path).lower() == DEFAULT_FILENAME.lower():
+            return path
+    # Exactly one bundled workbook and no exact-name match? Use it anyway.
+    return candidates[0] if len(candidates) == 1 else None
+
 
 # ----------------------------------------------------------------------------
 # Data loading + full pipeline (cached so filters don't re-run the whole thing)
@@ -15,6 +50,14 @@ DEFAULT_FILE = "Supply_chain_logisitcs_problem.xlsx"
 @st.cache_data(show_spinner="Loading data and running the rate-matching pipeline...")
 def load_and_process(file):
     xls = pd.ExcelFile(file)
+
+    missing_sheets = REQUIRED_SHEETS - set(xls.sheet_names)
+    if missing_sheets:
+        raise ValueError(
+            f"missing required sheet(s): {', '.join(sorted(missing_sheets))}. "
+            f"This workbook has: {', '.join(xls.sheet_names)}."
+        )
+
     orders = pd.read_excel(xls, sheet_name="OrderList")
     freight_rates = pd.read_excel(xls, sheet_name="FreightRates")
 
@@ -33,6 +76,16 @@ def load_and_process(file):
     }
     orders = orders.rename(columns=rename_orders)
     freight_rates = freight_rates.rename(columns=rename_rates)
+
+    missing_order_cols = REQUIRED_ORDER_COLS - set(orders.columns)
+    missing_rate_cols = REQUIRED_RATE_COLS - set(freight_rates.columns)
+    if missing_order_cols or missing_rate_cols:
+        parts = []
+        if missing_order_cols:
+            parts.append(f"OrderList is missing: {', '.join(sorted(missing_order_cols))}")
+        if missing_rate_cols:
+            parts.append(f"FreightRates is missing: {', '.join(sorted(missing_rate_cols))}")
+        raise ValueError(" | ".join(parts))
 
     # Rate matching: carrier + route + service, then weight-band filter
     orders_rate = orders.merge(
@@ -103,16 +156,31 @@ st.sidebar.title("🚚 Freight Cost Intelligence")
 st.sidebar.caption("Rate-card cost & savings explorer")
 
 uploaded = st.sidebar.file_uploader("Dataset (.xlsx)", type=["xlsx"])
-data_source = uploaded if uploaded is not None else (DEFAULT_FILE if os.path.exists(DEFAULT_FILE) else None)
+bundled = find_bundled_dataset()
+data_source = uploaded if uploaded is not None else bundled
 
 if data_source is None:
     st.warning(
-        f"Couldn't find **{DEFAULT_FILE}** next to this app, and nothing was uploaded. "
-        "Upload the dataset in the sidebar to continue."
+        "No bundled dataset found next to this app, and nothing was uploaded. "
+        "Upload a workbook with `OrderList` and `FreightRates` sheets in the sidebar to continue."
     )
     st.stop()
 
-orders, freight_rates, candidate_rates, order_summary, unmatched_orders = load_and_process(data_source)
+if uploaded is None:
+    st.sidebar.caption(f"📁 Using bundled dataset: `{os.path.basename(bundled)}`")
+else:
+    st.sidebar.caption(f"📁 Using uploaded file: `{uploaded.name}`")
+
+try:
+    orders, freight_rates, candidate_rates, order_summary, unmatched_orders = load_and_process(data_source)
+except ValueError as e:
+    st.error(
+        f"This file doesn't match the expected structure — {e}\n\n"
+        "The app needs an `OrderList` sheet and a `FreightRates` sheet with the same "
+        "column layout as the sample dataset. Fix the file and re-upload, or remove your "
+        "upload to fall back to the bundled dataset."
+    )
+    st.stop()
 
 st.sidebar.divider()
 st.sidebar.subheader("Filters")
